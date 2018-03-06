@@ -27,7 +27,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
-        AppDelegateDidEnterBackground(
+        AppDelegateWillEnterForeground(
             unsafeBitCast(application, to: UnsafeMutableRawPointer.self)
         )
     }
@@ -46,4 +46,3 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
 }
-

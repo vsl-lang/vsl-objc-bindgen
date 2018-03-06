@@ -13,6 +13,8 @@
 
 #define SWIFT_CLASS(name) Swift ## name
 #define DECLARE_SWIFT_CLASS(name) typedef void* SWIFT_CLASS(name)
+#define DECLARE_METHOD(head, args, name) head name args
+#define ARGLIST( ... ) __VA_ARGS__
 
 DECLARE_SWIFT_CLASS(OpaquePointer);
 
