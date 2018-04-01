@@ -1,0 +1,9 @@
+name: iOS
+description: Connects to iOS to compile to iOS targets using UIKit and other iOS SDKs
+
+version: 0.0.1
+
+target: ios
+
+sources:
+    - iOS/*.vsl

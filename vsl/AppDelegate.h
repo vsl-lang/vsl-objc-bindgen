@@ -1,23 +1,8 @@
-//
-//  AppDelegate.h
-//
-//
-//  Created by Vihan Bhargava on 3/5/18.
-//
+#import <UIKit/UIKit.h>
 
-#ifndef AppDelegate_h
-#define AppDelegate_h
+@interface AppDelegate : UIResponder <UIApplicationDelegate>
 
-#include "vsl-ios.h"
+@property (strong, nonatomic) UIWindow *window;
 
-#define AppDelegate(head, args, name) DECLARE_METHOD(head, args, AppDelegate ## name)
-#define AppDelegateListener(name) AppDelegate(void, (SwiftUIApplication application), name)
 
-AppDelegate(bool, (SwiftUIApplication application, SwiftDictionary options), DidFinishLaunchingWithOptions);
-AppDelegateListener(WillResignActive);
-AppDelegateListener(DidEnterBackground);
-AppDelegateListener(WillEnterForeground);
-AppDelegateListener(DidBecomeActive);
-AppDelegateListener(WillTerminate);
-
-#endif /* AppDelegate_h */
+@end

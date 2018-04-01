@@ -1,5 +1,4 @@
-@delegate
-public class AppDelegate {
+public class UIApplicationDelegate {
     @delegate(DidFinishLaunching) public func didFinishLaunching(application: UIApplication, with options: SwiftDictionary) {}
 
     @delegate(WillResignActive) public func willResignActive(application: UIApplication) {}

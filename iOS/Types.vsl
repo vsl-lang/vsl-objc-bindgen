@@ -1,2 +1,10 @@
 public typealias UIApplication = OpaquePointer
-public typealias SwiftDictionary = OpaquePointer
+
+private func SwiftDictionaryGet(dictionary: SwiftDictionary, value: OpaquePointer) -> OpaquePointer external(SwiftDictionaryGet);
+@mock(opaquepointer) public class SwiftDictionary<T, V> {
+
+    public subscript(value: T) {
+        V::SwiftDictionaryGet(self, value: OpaquePointer::value)
+    }
+
+}
