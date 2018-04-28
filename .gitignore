@@ -68,3 +68,5 @@ fastlane/test_output
 
 out.ll
 artifacts
+
+target
