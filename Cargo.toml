@@ -1,5 +1,5 @@
 [package]
-name = "vsl_ios"
+name = "vsl_objc_bindgen"
 version = "0.1.0"
 authors = ["Vihan <contact@vihan.org>"]
 

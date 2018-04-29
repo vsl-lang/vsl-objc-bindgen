@@ -4,6 +4,22 @@ extern crate pretty_env_logger;
 extern crate clap;
 extern crate colored;
 
+macro_rules! error_exit {
+    ($msg:expr) => {
+        {
+            error!($msg);
+            ::std::process::exit(1);
+        }
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        {
+            error!($fmt, $($arg)*);
+            ::std::process::exit(1);
+        }
+    };
+}
+
+#[macro_use] mod xcrun;
 mod commands;
 mod artifacts;
 
@@ -19,6 +35,11 @@ fn main() {
                           .subcommand(SubCommand::with_name("create")
                                       .about("Creates a VSL Obj-C linkage template"))
                           .subcommand(SubCommand::with_name("compile")
+                                      .arg(Arg::with_name("FILES")
+                                           .help("Objective-C `.m` files to compile")
+                                           .multiple(true)
+                                           .required(true)
+                                           .index(3))
                                       .arg(Arg::with_name("SYSTEM")
                                            .help("The system, e.g. `ios` or `macosx`")
                                            .required(true)

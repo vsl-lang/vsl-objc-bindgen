@@ -1,0 +1,121 @@
+use clap::{ArgMatches, Error, ErrorKind};
+use std::process::{Command, Output};
+
+use artifacts::{Artifact};
+use std::path::{Path, PathBuf};
+use std::io;
+use std::ffi::{OsStr};
+
+pub fn cli<'f>(matches: &ArgMatches) {
+    let target_sys = matches.value_of("SYSTEM")
+                            .map(|string: &str| string.to_owned())
+                            .expect("No system received");
+
+    let target_platform = matches.value_of("PLATFORM")
+                                 .map(|string: &str| string.to_owned())
+                                 .expect("No platform received");
+
+    let platform_version = matches
+        .value_of("platform-version")
+        .map_or_else(|| {
+            // Use xcrun helper command to help use extract the latest SDK version if it's not
+            // provided
+            xcrun!(
+                &["--sdk", target_platform.as_str(), "--show-sdk-version"],
+                "Could not determine platform version, please explicitly specify."
+            )
+        }, |value: &str| value.to_string());
+
+    let artifact = Artifact::new(target_sys, target_platform, platform_version, "x86_64".to_string());
+
+    info!("Using artifact {}", artifact.get_name());
+    info!("Using triple {}", artifact.get_triple());
+
+    let out_file = artifact.get_path();
+    let out_file = out_file.as_path();
+    info!("Path is {}", out_file.display());
+
+    // Check if path is already compiled
+    if !matches.is_present("force-compile") && out_file.exists() {
+        error_exit!("Already compiled. Use `-f` to force re-compile");
+    }
+
+    // Convert output file to path
+    let out_file = match out_file.to_str() {
+        Some(value) => value,
+        None => {
+            error_exit!("Could not generate output file name.")
+        }
+    };
+
+    // Compile all files
+    let files = match matches.values_of_lossy("FILES") {
+        Some(value) => value,
+        None => {
+            error_exit!("No values provided")
+        }
+    };
+
+    let sdk_path = artifact.get_sdk_path();
+    let platform_path = artifact.get_platform_path();
+
+    let compiled_files: Vec<PathBuf> = files.iter().filter_map(|source_path: &String| -> Option<PathBuf> {
+        let source_file = source_path.clone();
+        let source_file = Path::new(&source_file);
+
+        let source_name = source_file.file_stem()
+            .and_then(|name: &OsStr| name.to_str())
+            .expect(&format!("Could not parse name for file {}", source_file.display()));
+
+        let temp_file_buf = artifact.get_path_for_temp(source_name);
+        let temp_file = temp_file_buf.as_path();
+
+        let temp_path = temp_file.to_str()
+            .expect(&format!("Failed to obtain path of {}", temp_file.display()));
+
+        info!("Processing file {} ({}) to {}", source_path, source_name, temp_file.display());
+
+        match Command::new("clang")
+                .arg(source_path)
+                .args(vec!["-ObjC++", "-emit-llvm", "-S", "-o", temp_path])
+                .args(vec!["-isysroot", &sdk_path])
+                .args(vec!["-fmodules", "-fobjc-arc"])
+                .args(vec![format!("-F{}/Developer/SDKs/{}.sdk/System/Library/Frameworks/", &platform_path, artifact.get_platform())])
+                .args(vec![format!("--target={}", &artifact.get_triple())])
+                .args(vec![format!("-m{}-version-min={}", artifact.get_sys(), artifact.get_version())])
+                .output() {
+            Ok(output) => {
+                if !output.status.success() {
+                    warn!("Failed to compile {}: {}", source_file.display(), String::from_utf8_lossy(&output.stderr));
+                    None
+                } else {
+                    info!("Succesfully compiled {}", source_file.display());
+                    Some(temp_file_buf.to_owned())
+                }
+            }
+            Err(err) => {
+                warn!("Failed to compile {}: {}", source_file.display(), err);
+                None
+            }
+        }
+    }).collect();
+
+    info!("Succesfully compiled {} file(s).", compiled_files.len());
+
+    // Archive these files
+    match Command::new("llvm-link")
+            .args(compiled_files)
+            .arg(format!("-o={}", out_file))
+            .output() {
+        Ok(output) => {
+            if !output.status.success() {
+                error_exit!("Failed to link: {}", String::from_utf8_lossy(&output.stderr));
+            } else {
+                info!("Successfully linked");
+            }
+        }
+        Err(err) => {
+            error_exit!("Failed to run link step.");
+        }
+    };
+}
