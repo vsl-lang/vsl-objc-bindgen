@@ -1,5 +1,4 @@
-use std::path::{PathBuf, Path};
-use std::process::Command;
+use std::path::{PathBuf};
 use std::fs;
 
 pub struct Artifact {
@@ -90,5 +89,22 @@ impl Artifact {
             ::std::process::exit(1);
         }
         artifact_path
+    }
+
+    pub fn get_comp_args(&self) -> Vec<String> {
+        vec![
+            "-ObjC++".to_string(),
+            "-isysroot".to_string(), self.get_sdk_path(),
+            format!("-F{}/Developer/SDKs/{}.sdk/System/Library/Frameworks/", &self.get_platform_path(), self.get_platform()),
+            format!("--target={}", &self.get_triple()),
+            format!("-m{}-version-min={}", self.get_sys(), self.get_version())
+        ]
+    }
+
+    pub fn infer_version(platform: &String) -> String {
+        xcrun!(
+            &["--sdk", platform.as_str(), "--show-sdk-version"],
+            "Could not determine platform version, please explicitly specify."
+        )
     }
 }
