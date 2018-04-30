@@ -3,11 +3,12 @@ use clang::*;
 use std::collections::HashSet;
 use artifacts::Artifact;
 
-pub mod typedef;
-pub mod interface_decl;
-
 import!(symbol_status);
 import!(gen_context);
+
+pub mod typedef;
+pub mod interface_decl;
+pub mod objc_instance_method;
 
 pub fn cli(matches: &ArgMatches) {
     // Create Artifact
@@ -33,11 +34,13 @@ pub fn cli(matches: &ArgMatches) {
         .flat_map(|framework| vec!["-framework".to_string(), framework])
         .collect();
 
+    let includes: Vec<String> = matches.values_of_lossy("includes").unwrap_or(vec![]);
+
     let c_file_path = unwrap_or_exit!(matches.value_of("C_OUTPUT_FILE"), "No output C file");
     let vsl_file_path = unwrap_or_exit!(matches.value_of("VSL_OUTPUT_FILE"), "No output VSL file");
 
     let symbols: HashSet<SymbolStatus> = symbols.iter().map(|symbol_name| SymbolStatus::new(symbol_name.to_string())).collect();
-    let mut gen_context = GenContext::new(symbols, vsl_file_path.to_string(), c_file_path.to_string());
+    let mut gen_context = GenContext::new(symbols, vsl_file_path.to_string(), c_file_path.to_string(), includes);
 
     let clang = Clang::new().unwrap();
     let index = Index::new(&clang, false, false);
@@ -55,29 +58,9 @@ pub fn cli(matches: &ArgMatches) {
         Err(err) => error_exit!("parsing failed: {}", err)
     };
 
-    tu.get_entity()
-        .get_children()
-        .iter()
-        .for_each(|entity| {
-            if entity.get_kind() == EntityKind::ObjCInterfaceDecl {
-                println!("found decl {}", entity.get_name().unwrap_or("n/a".to_string()));
-            }
+    compile_entity_children(&mut gen_context, tu.get_entity(), false);
 
-            if let Some(entity_name) = entity.get_name() {
-                // println!("{}", entity_name);
-                let mut symbol_status = SymbolStatus::new(entity_name);
-                if entity.is_declaration() {
-                    // Check if the symbol should be compiled
-                    if gen_context.get_symbols().get(&symbol_status).map_or(false, |s| s.should_compile()) {
-                        gen_context.get_symbols().remove(&symbol_status);
-                        symbol_status.set_compiled();
-                        gen_context.get_symbols().insert(symbol_status);
-
-                        compile_entity(&gen_context, entity.get_canonical_entity())
-                    }
-                }
-            }
-        });
+    gen_context.finish();
 
     gen_context
         .get_symbols()
@@ -89,11 +72,38 @@ pub fn cli(matches: &ArgMatches) {
         })
 }
 
-fn compile_entity(gen_context: &GenContext, entity: Entity) {
+fn compile_entity_children(gen_context: &mut GenContext, root_entity: Entity, compile_all: bool) {
+    root_entity
+        .get_children()
+        .iter()
+        .for_each(|entity| {
+            if let Some(entity_name) = entity.get_name() {
+                let mut symbol_status = SymbolStatus::new(entity_name);
+                if entity.is_declaration() {
+                    // Check if the symbol should be compiled
+                    if gen_context.get_symbols().get(&symbol_status).map_or(compile_all, |s| s.should_compile()) {
+                        gen_context.get_symbols().remove(&symbol_status);
+                        symbol_status.set_compiled();
+                        gen_context.get_symbols().insert(symbol_status);
+
+                        compile_entity(gen_context, entity.get_canonical_entity());
+                    }
+                }
+            }
+        });
+}
+
+fn compile_entity(gen_context: &mut GenContext, entity: Entity) {
     let entity_kind = entity.get_kind();
     match entity_kind {
-        EntityKind::TypedefDecl => typedef::gen(&gen_context, entity),
-        EntityKind::ObjCInterfaceDecl => interface_decl::gen(&gen_context, entity),
+        EntityKind::TypedefDecl => typedef::gen(gen_context, entity),
+
+        // We can treat as roughly the same since we'll generate a wrapper class anyway.
+        EntityKind::ObjCProtocolDecl |
+        EntityKind::ObjCInterfaceDecl => interface_decl::gen(gen_context, entity),
+
+        EntityKind::ObjCPropertyDecl => {},
+        EntityKind::ObjCInstanceMethodDecl => objc_instance_method::gen(gen_context, entity),
         _ => warn!("Unsupported entity type {:?} for symbol {}", entity_kind, entity.get_name().unwrap_or("nil".to_string()))
     }
 }

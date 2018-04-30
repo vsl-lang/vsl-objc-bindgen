@@ -70,3 +70,5 @@ out.ll
 artifacts
 
 target
+out.*.m
+out.*.h

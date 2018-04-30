@@ -95,6 +95,7 @@ impl Artifact {
         vec![
             "-ObjC++".to_string(),
             "-isysroot".to_string(), self.get_sdk_path(),
+            "-Wno-deprecated-declarations".to_string(),
             format!("-F{}/Developer/SDKs/{}.sdk/System/Library/Frameworks/", &self.get_platform_path(), self.get_platform()),
             format!("--target={}", &self.get_triple()),
             format!("-m{}-version-min={}", self.get_sys(), self.get_version())
