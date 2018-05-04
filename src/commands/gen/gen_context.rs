@@ -42,6 +42,7 @@ impl GenContext {
 
         for include in includes {
             ctx.vtable_out.write_fmt(format_args!("#import {}\n\n", include));
+            ctx.itf_out.write_fmt(format_args!("#import {}\n\n", include));
         }
 
         ctx.abi_out.write_all(b"extern \"C\" {\n\n");

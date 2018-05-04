@@ -18,6 +18,11 @@ pub fn cli(matches: &ArgMatches) {
         .value_of("platform-version")
         .map_or_else(|| Artifact::infer_version(&target_platform), |value: &str| value.to_string());
 
+    let frameworks: Vec<String> = matches.values_of_lossy("frameworks").unwrap_or(vec![])
+        .into_iter()
+        .flat_map(|framework| vec!["-framework".to_string(), framework])
+        .collect();
+
     let artifact = Artifact::new(target_sys, target_platform, platform_version, "x86_64".to_string());
 
     info!("Using artifact {}", artifact.get_name());
@@ -67,10 +72,15 @@ pub fn cli(matches: &ArgMatches) {
 
         info!("Processing file {} ({}) to {}", source_path, source_name, temp_file.display());
 
+        let mut clang_args = artifact.get_comp_args();
+        clang_args.push(source_path.to_string());
+        clang_args.extend_from_slice(&["-emit-llvm".to_string(), "-S".to_string(), "-o".to_string(), temp_path.to_string()]);
+        clang_args.extend_from_slice(&frameworks);
+
+        info!("Compiling with {:?}", clang_args);
+
         match Command::new("clang")
-                .arg(source_path)
-                .args(vec!["-ObjC++", "-emit-llvm", "-S", "-o", temp_path])
-                .args(artifact.get_comp_args())
+                .args(clang_args)
                 .output() {
             Ok(output) => {
                 if !output.status.success() {
@@ -94,7 +104,6 @@ pub fn cli(matches: &ArgMatches) {
     match Command::new("llvm-link")
             .args(compiled_files)
             .arg(format!("-o={}", out_file))
-            .args(vec!["-fmodules".to_string(), "-fobjc-arc".to_string()])
             .output() {
         Ok(output) => {
             if !output.status.success() {

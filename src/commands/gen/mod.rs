@@ -5,10 +5,13 @@ use artifacts::Artifact;
 
 import!(symbol_status);
 import!(gen_context);
+import!(ctype);
+import!(argument);
 
-pub mod typedef;
 pub mod interface_decl;
 pub mod objc_instance_method;
+pub mod enum_decl;
+pub mod typedef_decl;
 
 pub fn cli(matches: &ArgMatches) {
     // Create Artifact
@@ -96,11 +99,12 @@ fn compile_entity_children(gen_context: &mut GenContext, root_entity: Entity, co
 fn compile_entity(gen_context: &mut GenContext, entity: Entity) {
     let entity_kind = entity.get_kind();
     match entity_kind {
-        EntityKind::TypedefDecl => typedef::gen(gen_context, entity),
-
         // We can treat as roughly the same since we'll generate a wrapper class anyway.
         EntityKind::ObjCProtocolDecl |
         EntityKind::ObjCInterfaceDecl => interface_decl::gen(gen_context, entity),
+
+        EntityKind::TypedefDecl => typedef_decl::gen(gen_context, entity),
+        EntityKind::EnumDecl => enum_decl::gen(gen_context, entity),
 
         EntityKind::ObjCPropertyDecl => {},
         EntityKind::ObjCInstanceMethodDecl => objc_instance_method::gen(gen_context, entity),

@@ -4,9 +4,19 @@ use std::io::Write;
 use super::gen_context::GenContext;
 use super::symbol_status::SymbolStatus;
 use super::compile_entity_children;
+use super::CType;
 
 pub fn gen(gen_context: &mut GenContext, entity: Entity) {
     if let Some(mut entity_name) = entity.get_name() {
+
+        // Check if available
+        match entity.get_availability() {
+            Availability::Inaccessible |
+            Availability::Unavailable => {
+                return
+            }
+            _ => {}
+        }
 
         // Check if a function or property
         if entity_name.ends_with(":") {
@@ -98,7 +108,14 @@ pub fn gen(gen_context: &mut GenContext, entity: Entity) {
             let mangled_args = fn_private_arg_names
                 .iter()
                 .zip(fn_arg_types.iter())
-                .map(|(name, ty)| format!("{} {}", ty_to_cstr!(ty, entity), name))
+                .map(|(name, ty)| {
+                    let ty_string = ty_to_cstr!(ty, entity);
+                    if ty_string == "void (^)()" {
+                        format!("void (^{})()", name)
+                    } else {
+                        format!("{} {}", ty_string, name)
+                    }
+                })
                 .collect::<Vec<String>>()
                 .join(", ");
             gen_fmt!(gen_context, get_abi, "inline {} {}({}* __vsl_ocpp_self, {}) {{\n    ", ret_ty_cstr, mangled_name, parent_ty, mangled_args);
