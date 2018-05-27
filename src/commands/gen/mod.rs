@@ -10,6 +10,7 @@ import!(argument);
 
 pub mod interface_decl;
 pub mod objc_instance_method;
+pub mod objc_static_method;
 pub mod enum_decl;
 pub mod typedef_decl;
 
@@ -105,6 +106,8 @@ fn compile_entity(gen_context: &mut GenContext, entity: Entity) {
 
         EntityKind::TypedefDecl => typedef_decl::gen(gen_context, entity),
         EntityKind::EnumDecl => enum_decl::gen(gen_context, entity),
+
+        EntityKind::ObjCClassMethodDecl => objc_static_method::gen(gen_context, entity),
 
         EntityKind::ObjCPropertyDecl => {},
         EntityKind::ObjCInstanceMethodDecl => objc_instance_method::gen(gen_context, entity),

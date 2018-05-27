@@ -87,13 +87,29 @@ pub fn gen(gen_context: &mut GenContext, entity: Entity) {
         // Add the vtable call
         gen_fmt!(gen_context, get_impl, "- ({}){} {{\n    ", ret_ty_cstr, proto);
 
+        // The local argument names
+        let arg_names = fn_private_arg_names.join(", ");
+
+        // Generates the call
+        let super_call = if fn_private_arg_names.len() == 0 {
+            fn_name.clone().to_string()
+        } else {
+            fn_private_arg_names
+                .iter()
+                .enumerate()
+                .map(|(index, priv_arg)| format!("{}: {}", pub_names[index], priv_arg))
+                .collect::<Vec<String>>()
+                .join(" ")
+        };
+
+        gen_fmt!(gen_context, get_impl, "[super {}];\n    ", super_call);
+
         // Determine if to return.
         let does_return = ret_ty.map(|t| t.get_kind()).unwrap_or(TypeKind::Void) != TypeKind::Void;
         if does_return {
             gen_all!(gen_context, get_impl, b"return ");
         }
 
-        let arg_names = fn_private_arg_names.join(", ");
         gen_fmt!(gen_context, get_impl, "vtable->{}({});\n", fn_name, arg_names);
 
         gen_all!(gen_context, get_impl, b"}\n\n");
@@ -137,8 +153,8 @@ pub fn gen(gen_context: &mut GenContext, entity: Entity) {
                 .join(" ");
             gen_fmt!(gen_context, get_abi, "[__vsl_ocpp_self {}];\n", pub_name_mappings);
         }
-        gen_all!(gen_context, get_abi, b"}\n\n");
 
+        gen_all!(gen_context, get_abi, b"}\n\n");
     } else {
         warn!("Could not get name for target resolution entity.");
     }

@@ -19,7 +19,7 @@ pub fn gen(gen_context: &mut GenContext, entity: Entity) {
         gen_fmt!(gen_context, get_impl, "@implementation {}\n\n", GenContext::get_class_name(&entity_name));
 
         // Write the VSL binding
-        gen_fmt!(gen_context, get_vsl, "public class {} {{\n\n", entity_name);
+        gen_fmt!(gen_context, get_vsl, "public class {} {{\n", entity_name);
 
         let main_entity = match entity.get_kind() {
             EntityKind::ObjCProtocolDecl => entity,

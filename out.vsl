@@ -1,4 +1,9 @@
-public class UIViewController {
+public class UIView {
+    static func userInterfaceLayoutDirectionForSemanticContentAttribute(userInterfaceLayoutDirectionForSemanticContentAttribute: Int8) -> Int8 external(__vsl_ocpp_75736572496E746572666163654C61796F7574446972656374696F6E466F7253656D616E746963436F6E74656E744174747269627574653A)
+    static func userInterfaceLayoutDirectionForSemanticContentAttribute(userInterfaceLayoutDirectionForSemanticContentAttribute: Int8, relativeToLayoutDirection: Int8) -> Int8 external(__vsl_ocpp_75736572496E746572666163654C61796F7574446972656374696F6E466F7253656D616E746963436F6E74656E744174747269627574653A72656C6174697665546F4C61796F7574446972656374696F6E3A)
+    static func layerClass() -> Class external(__vsl_ocpp_6C61796572436C617373)
+}
 
+public class UIViewController {
 }
 
